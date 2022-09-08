@@ -45,54 +45,24 @@ function mask(objOrArr) {
 class CustomConsole {
   log(message) {
     let temp = JSON.parse(message);
-    console.log(temp);
-
     temp = mask(temp);
-
-    console.log(JSON.parse({ temp }));
-
-    for (var items in temp) {
-      console.log({ items });
-    }
-
-    // console.log({ temp });
-    message = message + "APENEDED LOG " + temp;
     temp = JSON.stringify(temp);
-    console.log(message);
+
+    console.log(temp);
   }
 
   debug(message) {
-    const temp = JSON.parse(message);
-
-    message = message + "APENEDED DEBUG " + temp;
-    console.log(message);
+    let temp = JSON.parse(message);
+    temp = mask(temp);
+    temp = JSON.stringify(temp);
+    console.debug(tmep);
   }
 
   info(message) {
     try {
       let temp = JSON.parse(message);
-      console.log(temp);
-      console.log(typeof message);
-      console.log(typeof temp);
-
       temp = mask(temp);
-
-      console.log({ temp });
-      console.log(typeof temp);
-
-      // console.log(JSON.parse({ temp }));
-
-      // for (var items in temp) {
-      //   console.log({ items });
-      // }
-
-      // console.log({ temp });
-      message = message + "APENEDED LOG " + temp;
       temp = JSON.stringify(temp);
-      console.log(message);
-
-      message = message + "APENEDED INFO ";
-      console.log(message);
       console.log(temp);
     } catch (error) {
       console.log({ error });
@@ -100,17 +70,17 @@ class CustomConsole {
   }
 
   warn(message) {
-    const temp = JSON.parse(message);
-
-    message = message + "APENEDED WARN " + temp;
-    console.log(message);
+    let temp = JSON.parse(message);
+    temp = mask(temp);
+    temp = JSON.stringify(temp);
+    console.warn(temp);
   }
 
   error(message) {
-    const temp = JSON.parse(message);
-
-    message = message + "APENEDED ERROR " + temp;
-    console.log(message);
+    let temp = JSON.parse(message);
+    temp = mask(temp);
+    temp = JSON.stringify(temp);
+    console.error(temp);
   }
 }
 
@@ -118,31 +88,20 @@ const log = new LambdaLog({
   logHandler: new CustomConsole(),
 });
 
-// Set logHandler to custom console
-// log.options.logHandler = new CustomConsole();
-
 app.get("/users", async function (req, res) {
   const params = {
     TableName: USERS_TABLE,
   };
 
-  // log.info("Hello from LambdaLog!");
-  // log.warn("something is missing, but it is OK");
-  // log.debug("some debug message");
-  // // Enable debug messages
-  // log.options.debug = true;
-  // log.debug("some debug message again");
-
   try {
     const { Items } = await dynamoDbClient.scan(params).promise();
 
-    // const { userId, name } = Item;
+    log.log("Hello from LambdaLog!", { Items });
     log.info("Hello from LambdaLog!", { Items });
-    // log.warn("something is missing, but it is OK", { Items });
-    // log.debug("some debug message", { Items });
-    // Enable debug messages
-    // log.options.debug = true;
-    // log.debug("some debug message again", { Items });
+    log.warn("Hello from LambdaLog!", { Items });
+    log.debug("Hello from LambdaLog!", { Items });
+    log.error("Hello from LambdaLog!", { Items });
+
     if (Items) {
       res.json(Items);
     } else {
