@@ -1,51 +1,154 @@
 const AWS = require("aws-sdk");
 const express = require("express");
 const serverless = require("serverless-http");
+const { LambdaLog } = require("lambda-log");
 
-const { Logger } = require("lambda-logger-node");
-const logger = Logger();
-const log = require("lambda-log");
 const app = express();
 
 const USERS_TABLE = process.env.USERS_TABLE;
 const dynamoDbClient = new AWS.DynamoDB.DocumentClient();
 
 app.use(express.json());
+// Set logHandler to a new instance of the Console class.
+
+function isArray(data) {
+  return Array.isArray(data);
+}
+
+function isPlainObject(data) {
+  return typeof data === "object" && data !== null && !Array.isArray(data);
+}
+
+// const maskedFieldsKeys = ["propA", "propDBA", "propE1B", "propD", "propC", "0"];
+maskedFieldsKeys = ["name"];
+
+function mask(objOrArr) {
+  const masked = {};
+  for (let key in objOrArr) {
+    const val = objOrArr[key];
+    if (isPlainObject(val) || isArray(val)) {
+      masked[key] = mask(val);
+    } else {
+      let maskedValue = "";
+
+      masked[key] = objOrArr[key];
+      if (maskedFieldsKeys.includes(key)) {
+        [...objOrArr[key]].forEach((item) => {
+          maskedValue = maskedValue + "*";
+        });
+        masked[key] = maskedValue;
+      }
+    }
+  }
+  return masked;
+}
+class CustomConsole {
+  log(message) {
+    let temp = JSON.parse(message);
+    console.log(temp);
+
+    temp = mask(temp);
+
+    console.log(JSON.parse({ temp }));
+
+    for (var items in temp) {
+      console.log({ items });
+    }
+
+    // console.log({ temp });
+    message = message + "APENEDED LOG " + temp;
+    temp = JSON.stringify(temp);
+    console.log(message);
+  }
+
+  debug(message) {
+    const temp = JSON.parse(message);
+
+    message = message + "APENEDED DEBUG " + temp;
+    console.log(message);
+  }
+
+  info(message) {
+    try {
+      let temp = JSON.parse(message);
+      console.log(temp);
+      console.log(typeof message);
+      console.log(typeof temp);
+
+      temp = mask(temp);
+
+      console.log({ temp });
+      console.log(typeof temp);
+
+      // console.log(JSON.parse({ temp }));
+
+      // for (var items in temp) {
+      //   console.log({ items });
+      // }
+
+      // console.log({ temp });
+      message = message + "APENEDED LOG " + temp;
+      temp = JSON.stringify(temp);
+      console.log(message);
+
+      message = message + "APENEDED INFO ";
+      console.log(message);
+      console.log(temp);
+    } catch (error) {
+      console.log({ error });
+    }
+  }
+
+  warn(message) {
+    const temp = JSON.parse(message);
+
+    message = message + "APENEDED WARN " + temp;
+    console.log(message);
+  }
+
+  error(message) {
+    const temp = JSON.parse(message);
+
+    message = message + "APENEDED ERROR " + temp;
+    console.log(message);
+  }
+}
+
+const log = new LambdaLog({
+  logHandler: new CustomConsole(),
+});
+
+// Set logHandler to custom console
+// log.options.logHandler = new CustomConsole();
 
 app.get("/users", async function (req, res) {
   const params = {
     TableName: USERS_TABLE,
   };
 
-  logger.info("getting users");
-
-  log.info("Hello from LambdaLog!");
-  log.warn("something is missing, but it is OK");
-  log.debug("some debug message");
-  // Enable debug messages
-  log.options.debug = true;
-  log.debug("some debug message again");
+  // log.info("Hello from LambdaLog!");
+  // log.warn("something is missing, but it is OK");
+  // log.debug("some debug message");
+  // // Enable debug messages
+  // log.options.debug = true;
+  // log.debug("some debug message again");
 
   try {
     const { Items } = await dynamoDbClient.scan(params).promise();
-    console.log({ Items });
+
+    // const { userId, name } = Item;
+    log.info("Hello from LambdaLog!", { Items });
+    // log.warn("something is missing, but it is OK", { Items });
+    // log.debug("some debug message", { Items });
+    // Enable debug messages
+    // log.options.debug = true;
+    // log.debug("some debug message again", { Items });
     if (Items) {
-      // const { userId, name } = Item;
-      logger.error(
-        "somethign went wrong, unable to retrive users, error",
-        Items
-      );
-      logger.warn("somethign went wrong, unable to retrive users, warn", Items);
       res.json(Items);
     } else {
-      logger.error("somethign went wrong, unable to retrive users, error");
-      logger.warn("somethign went wrong, unable to retrive users, warn");
-
       res.status(404).json({ error: "Could not find usera" });
     }
   } catch (error) {
-    logger.error("somethign went wrong, unable to retrive users", error);
-
     console.log(error);
     res.status(500).json({ error: "Could not retreive user" });
   }
